@@ -38,7 +38,11 @@ def K_means_plus_plus(n_centroids, n_datapoints, array):
 pd.set_option('display.max_columns', 500)
 df = pd.read_csv('EastWestAirlinesCluster.csv')
 
+cols = df.columns
+
 array = df.to_numpy(dtype=np.float32)
+
+array_copy = np.delete(array, 0, 1)
 
 
 for i in range(1, array.shape[1]):
@@ -48,46 +52,44 @@ array = np.delete(array, 0, 1)
 
 n_datapoints = array.shape[0]
 
-n_cent_arr = np.arange(2, 15)
-
 dist_list = []
 
-n_samples = 10
+n_centroids = 4
 
-for n_centroids in n_cent_arr:
-    print(n_centroids)
-    list = []
-    for i in range(n_samples):
-        centroids = K_means_plus_plus(n_centroids, n_datapoints, array)
+centroids = K_means_plus_plus(n_centroids, n_datapoints, array)
 
-        centroid_id = np.zeros(array.shape[0])
+centroid_id = np.zeros(array.shape[0])
 
-        old_sum = np.inf
+old_sum = np.inf
 
-        improvement = 1
-        while improvement > 0:
-            dist_sum = 0
-            for i in range(array.shape[0]):
-                x = array[i]
-                centroid_distances = np.zeros(n_centroids)
-                for j in range(n_centroids):
-                    centroid_distances[j] = np.sum((x - centroids[j]) ** 2)
+improvement = 1
+while improvement > 0:
+    dist_sum = 0
+    for i in range(array.shape[0]):
+        x = array[i]
+        centroid_distances = np.zeros(n_centroids)
+        for j in range(n_centroids):
+            centroid_distances[j] = np.sum((x - centroids[j]) ** 2)
 
-                centroid_id[i] = np.argmin(centroid_distances)
-                dist_sum += np.min(centroid_distances)
+        centroid_id[i] = np.argmin(centroid_distances)
+        dist_sum += np.min(centroid_distances)
 
-            for k in range(n_centroids):
-                n_elements = np.count_nonzero(centroid_id == k)
-                if n_elements != 0:
-                    centroids[k] = np.sum(array, axis=0, where=(centroid_id[:, None] == k)) / n_elements
+    for k in range(n_centroids):
+        n_elements = np.count_nonzero(centroid_id == k)
+        if n_elements != 0:
+            centroids[k] = np.sum(array, axis=0, where=(centroid_id[:, None] == k)) / n_elements
 
-            improvement = old_sum - dist_sum
-            old_sum = dist_sum
+    improvement = old_sum - dist_sum
+    old_sum = dist_sum
 
-        list.append(dist_sum)
+for k in range(n_centroids):
+    for i in range(array.shape[1]):
+        centroids[k][i] = centroids[k][i] * (np.max(array_copy[:, i]) - np.min(array_copy[:, i])) + np.min(array_copy[:, i])
 
-    dist_list.append(sum(list))
-    print(dist_sum)
 
-plt.plot(n_cent_arr, dist_list)
-plt.show()
+centroid_df = df = pd.DataFrame()
+
+for i in range(array.shape[1]):
+    centroid_df[cols[i+1]] = centroids[:, i]
+
+print(centroid_df)
