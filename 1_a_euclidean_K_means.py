@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 
 pd.set_option('display.max_columns', 500)
 df = pd.read_csv('EastWestAirlinesCluster.csv')
-print(df.columns)
 
 array = df.to_numpy(dtype=np.float32)
 
@@ -16,7 +15,34 @@ array = np.delete(array, 0, 1)
 
 n_centroids = 5
 
+n_datapoints = array.shape[0]
+
 centroids = np.random.rand(n_centroids, array.shape[1])
+
+def K_means_plus_plus(n_centroids, n_datapoints, centroids, array):
+    problist = []
+
+    for i in range(n_datapoints):
+        problist.append(1 / n_datapoints)
+
+    for k in range(n_centroids):
+        v = np.random.choice(n_datapoints, p=problist)
+
+        centroids[k] = array[v]
+
+        distlist = []  # The last iteration this is not really necessary
+        for i in range(n_datapoints):
+            dist = (np.linalg.norm(centroids[k] - array[i])) ** 2
+            distlist.append(dist)
+
+        for i in range(n_datapoints):
+            prob = distlist[i] / np.sum(distlist)
+            problist[i] = prob
+
+    return centroids
+
+
+centroids = K_means_plus_plus(n_centroids, n_datapoints, centroids, array)
 
 centroid_id = np.zeros(array.shape[0])
 
@@ -42,5 +68,3 @@ while improvement > 0:
     improvement = old_sum - dist_sum
     old_sum = dist_sum
     dist_sum = 0
-
-print(centroids)
