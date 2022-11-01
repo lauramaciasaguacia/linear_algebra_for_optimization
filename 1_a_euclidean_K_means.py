@@ -30,7 +30,6 @@ def K_means_plus_plus(n_centroids, n_datapoints, array):
         centroids.append(array[v])
 
     centroids = np.array(centroids)
-    print(centroids)
 
     return centroids
 
@@ -54,9 +53,12 @@ dist_list = []
 
 n_samples = 10
 
+sum_of_variance = []
+
 for n_centroids in n_cent_arr:
-    print(n_centroids)
-    list = []
+    # print(n_centroids)
+    cen_dist_list = []
+    cen_var_list = []
     for i in range(n_samples):
         centroids = K_means_plus_plus(n_centroids, n_datapoints, array)
 
@@ -66,7 +68,7 @@ for n_centroids in n_cent_arr:
 
         improvement = 1
         while improvement > 0:
-            dist_sum = 0
+            dis_arr = np.zeros(array.shape[0])
             for i in range(array.shape[0]):
                 x = array[i]
                 centroid_distances = np.zeros(n_centroids)
@@ -74,20 +76,32 @@ for n_centroids in n_cent_arr:
                     centroid_distances[j] = np.sum((x - centroids[j]) ** 2)
 
                 centroid_id[i] = np.argmin(centroid_distances)
-                dist_sum += np.min(centroid_distances)
+                dis_arr[i] = np.min(centroid_distances)
 
             for k in range(n_centroids):
                 n_elements = np.count_nonzero(centroid_id == k)
                 if n_elements != 0:
                     centroids[k] = np.sum(array, axis=0, where=(centroid_id[:, None] == k)) / n_elements
 
+
+            dist_sum = sum(dis_arr)
             improvement = old_sum - dist_sum
             old_sum = dist_sum
 
-        list.append(dist_sum)
+        var = 0
+        k = 0
+        for k in range(n_centroids):
+            n_elements = np.count_nonzero(centroid_id == k)
+            if n_elements != 0:
+                var += np.sum((array - centroids[k]) ** 2, where=(centroid_id[:, None] == k)) / n_elements
+        cen_dist_list.append(dist_sum)
+        cen_var_list.append(var / n_centroids)
 
-    dist_list.append(sum(list))
-    print(dist_sum)
+    sum_of_variance.append(sum(cen_var_list))
+    # print(sum_of_variance)
+    dist_list.append(sum(cen_dist_list))
 
-plt.plot(n_cent_arr, dist_list)
+plt.plot(n_cent_arr, sum_of_variance)
+plt.xlabel("N Clusters")
+plt.ylabel("Sum of variances of each cluster")
 plt.show()
