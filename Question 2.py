@@ -7,7 +7,7 @@ This is a temporary script file.
 
 import numpy as np
 import pandas as pd
-#import scipy
+import scipy
 
 
 ### 2a - first calculate the Gaussian Kernel Matrix (Francesco's code) ###
@@ -40,7 +40,7 @@ print(ker)
 
 ### Build a Laplacian from the Kernel Matrix  ###
 
-def make_laplacian(A, sim):
+def make_similarity(A, sim):
     with np.nditer(A, op_flags = ['readwrite']) as iteration: #iterate over all entries of ker with poss to rewrite
         for x in iteration:
             if x > sim:     #similarity level needs to be chosen
@@ -49,10 +49,24 @@ def make_laplacian(A, sim):
                 x[...] = 0
     return A
 
-ker = make_laplacian(ker, 0.95)
-print(ker)
+def make_diagonal(A):
+    B = np.zeros((A.shape[0], A.shape[1]))
+    for i in range(A.shape[0]):
+        B[i, i] = np.sum(A[i,:])
+    return B
+
+similar = make_similarity(ker, 0.95)
+diagonal = make_diagonal(ker)
+lap = diagonal - similar
+
+print("similarity matrix")
+print(similar)
+print("diagonal matrix")
+print(diagonal)
+print("Laplacian matrix")
+print(lap)
         
-#vecs = scipy.sparse.linalg.eigs(ker, k=NumberOfClusters, which = 'SM')[1]
+vecs = scipy.sparse.linalg.eigs(lap, k=NumberOfClusters, which = 'SM')[1]
 #This takes ages, so if anyone has a better alternative?
 
 
@@ -65,37 +79,37 @@ print(ker)
 #Laplacian matrix is pos semi def, hence the smallest eigenvalue can be found 
 #with the power iteration on ker - lambda_max I
 
-def powermethod(A):
-    v = np.random.rand(A.shape[1])
-    A = np.array(A)
-    diff = 10
-    mu = 0
+# def powermethod(A):
+#     v = np.random.rand(A.shape[1])
+#     A = np.array(A)
+#     diff = 10
+#     mu = 0
     
-    while diff > 0.0000000001:
-        Av = np.matmul(A, v)
-        v = Av/np.linalg.norm(Av)
-        mu_new = np.dot(v, Av) / np.dot(v,v)
-        diff = np.abs(mu-mu_new)
-        mu = mu_new
+#     while diff > 0.0000000001:
+#         Av = np.matmul(A, v)
+#         v = Av/np.linalg.norm(Av)
+#         mu_new = np.dot(v, Av) / np.dot(v,v)
+#         diff = np.abs(mu-mu_new)
+#         mu = mu_new
         
-    return v, mu
+#     return v, mu
 
-ev_max = powermethod(ker)[1]
-print(ev_max)
+# ev_max = powermethod(ker)[1]
+# print(ev_max)
 
-newker = ker - ev_max * np.identity(ker.shape[0]) #make the smallest eigenvalues have the largest absolute value
+# newker = ker - ev_max * np.identity(ker.shape[0]) #make the smallest eigenvalues have the largest absolute value
 
-eigenvectorlist = []
-eigenvaluelist = []
+# eigenvectorlist = []
+# eigenvaluelist = []
 
-for i in range(NumberOfClusters):
-    v, mu = powermethod(newker)
-    mu = mu + ev_max
-    eigenvectorlist.append(v)
-    eigenvaluelist.append(mu)
-    newker = newker - mu * np.matmul(v, v.T)
+# for i in range(NumberOfClusters):
+#     v, mu = powermethod(newker)
+#     mu = mu + ev_max
+#     eigenvectorlist.append(v)
+#     eigenvaluelist.append(mu)
+#     newker = newker - mu * np.matmul(v, v.T)
     
-print(eigenvaluelist)
+# print(eigenvaluelist)
 
 
     
