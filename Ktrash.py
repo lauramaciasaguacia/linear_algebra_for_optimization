@@ -25,8 +25,8 @@ def normalize_z_score(array):
     return array
 
 
-# array = normalize_z_score(array)
-array = normalize_min_max(array)
+array = normalize_z_score(array)
+# array = normalize_min_max(array)
 array = np.delete(array, 0, 1)
 array2= np.delete(array2, 0, 1)
 
@@ -69,6 +69,16 @@ def meanvar(clusterlist,kernelmatrix,clustersum):
             SSE=SSE + dfk
 
     return SSE
+def gamma_parameter(array):
+    av = []
+    for i in range(array.shape[1]):
+        av.append(np.average(array[:, i]))
+    gamma = 0
+    for f in range(array.shape[0]):
+        gamma = gamma + np.linalg.norm(array[f, :] - av) ** 2
+    gamma = array.shape[0] / gamma
+
+    return gamma
 
 def kernel_cluster(ker, ClusterList, NumberOfClusters):
     ##
@@ -125,19 +135,12 @@ def print_my_table(X,number_of_clusters,cluster_list):
     return
 
 NumberOfClusters = 4
-
-av=[]
-for i in range(array.shape[1]):
-    av.append(np.average(array[:,i]))
-gamma=0
-for f in range(array.shape[0]):
-    gamma=gamma+np.linalg.norm(array[f,:]-av) **2 #No clue how to choose this
-gamma=array.shape[0]/gamma
+gamma= gamma_parameter(array)
 
 
 
 Best_SSE=0
-n=1
+n=2
 Best_cluster_list=[]
 t=time.time()
 
@@ -160,5 +163,5 @@ for i in range(n):
 
 
 
-print_my_table(array2,NumberOfClusters,ClusterList)
+print_my_table(array2,NumberOfClusters,Best_cluster_list)
 
