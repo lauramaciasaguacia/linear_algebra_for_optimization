@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+n_centroids = 4
+
 def K_means_plus_plus(n_centroids, n_datapoints, array):
     problist = []
     centroids = []
@@ -30,7 +32,6 @@ def K_means_plus_plus(n_centroids, n_datapoints, array):
         centroids.append(array[v])
 
     centroids = np.array(centroids)
-    print(centroids)
 
     return centroids
 
@@ -53,8 +54,6 @@ array = np.delete(array, 0, 1)
 n_datapoints = array.shape[0]
 
 dist_list = []
-
-n_centroids = 4
 
 centroids = K_means_plus_plus(n_centroids, n_datapoints, array)
 

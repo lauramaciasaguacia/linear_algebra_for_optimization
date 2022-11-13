@@ -39,9 +39,20 @@ df = pd.read_csv('EastWestAirlinesCluster.csv')
 
 array = df.to_numpy(dtype=np.float32)
 
+def normalize_min_max(array):
+    for i in range(1, array.shape[1]):
+        array[:, i] = (array[:, i] - np.min(array[:, i])) / (np.max(array[:, i]) - np.min(array[:, i]))
 
-for i in range(1, array.shape[1]):
-    array[:, i] = (array[:, i] - np.min(array[:, i])) / (np.max(array[:, i]) - np.min(array[:, i]))
+    return array
+
+def normalize_z_score(array):
+    for i in range(1, array.shape[1]):
+        array[:, i] = (array[:, i] - np.mean(array[:, i])) / np.std(array[:, i])
+
+    return array
+
+
+array = normalize_min_max(array)
 
 array = np.delete(array, 0, 1)
 
@@ -98,7 +109,6 @@ for n_centroids in n_cent_arr:
         cen_var_list.append(var / n_centroids)
 
     sum_of_variance.append(sum(cen_var_list))
-    # print(sum_of_variance)
     dist_list.append(sum(cen_dist_list))
 
 plt.plot(n_cent_arr, sum_of_variance)
