@@ -42,12 +42,13 @@ for f in range(array.shape[0]):
     gamma=gamma+np.linalg.norm(array[f,:]-av) **2 #No clue how to choose this
 gamma=array.shape[0]/gamma
 
-# plt.hist(kernel_matrix(array).flatten(), bins=2000)
-# plt.show()
+plt.hist(kernel_matrix(array, gamma).flatten(), bins=2000)
+plt.xlabel("Similarity")
+plt.ylabel("Frequency")
+plt.title("Histogram of Similarity")
+plt.show()
 
 ker = np.matrix(kernel_matrix(array, gamma))
-
-print(ker)
 
 ### Build a Laplacian from the Kernel Matrix  ###
 
@@ -125,9 +126,9 @@ for i in range(NumberOfClusters):
     mu = mu + ev_max
     eigenvectorlist.append(v)
     eigenvaluelist.append(mu)
-    
-print(eigenvaluelist)
 
+print(eigenvaluelist)
+print(eigenvectorlist)
 
     
 

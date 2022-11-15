@@ -113,4 +113,5 @@ for n_centroids in n_cent_arr:
 plt.plot(n_cent_arr, sum_of_variance)
 plt.xlabel("N Clusters")
 plt.ylabel("Sum of variances of each cluster")
+plt.title("Elbow method for selecting number of clusters")
 plt.show()
