@@ -39,8 +39,9 @@ def G_kernel_matrix( X,g ):
 def C_kernel_matrix(X, g): #Cauchy Kernel
     X_norm = np.sum(X ** 2, axis=-1)
     A = np.ones([X.shape[0],X.shape[0]])+g*(X_norm[:, None] + X_norm[None, :] - 2 * np.dot(X, X.T))
+    print('A',A)
     K=np.reciprocal(A)
-
+    print('K',K)
     return K
 
 
@@ -50,6 +51,12 @@ def E_kernel_matrix(X, g): #Cauchy Kernel
     K=np.reciprocal(A)
 
     return K
+
+def H_kernel_matrix(X,g): #HyperTangent Kernel
+    X_norm = np.sum(X ** 2, axis=-1)
+    K = np.ones([X.shape[0], X.shape[0]]) -  np.tanh(g * (X_norm[:, None] + X_norm[None, :] - 2 * np.dot(X, X.T)))
+    return K
+
 
 def ESD_calculator(clusterlist,kernelmatrix,clustersum):
     ESD=0
@@ -148,11 +155,16 @@ array2= np.delete(array2, 0, 1)
 
 
 
-
 NumberOfClusters = 4
 NumberOfIterations=5
 gamma= gamma_parameter(array)
+
 ker = G_kernel_matrix(array, gamma)
+ker = C_kernel_matrix(array, gamma)
+ker = G_kernel_matrix(array, gamma)
+
+
+
 Best_ESD=0
 Best_cluster_list=[]
 t=time.time()
