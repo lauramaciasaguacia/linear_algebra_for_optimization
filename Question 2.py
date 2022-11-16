@@ -8,13 +8,13 @@ This is a temporary script file.
 import numpy as np
 import pandas as pd
 import scipy
+import matplotlib.pyplot as plt
 
 
 ### 2a - first calculate the Gaussian Kernel Matrix (Francesco's code) ###
 ### This code needs to be checked again, but let's assume it works ###
 
-def kernel_matrix( X ):
-    g = 1
+def kernel_matrix( X , g):
     X_norm = np.sum(X ** 2, axis = -1)
     K = np.exp(-g * (X_norm[:, None] + X_norm[None, :] - 2 * np.dot(X, X.T))) #This forumla helped so much, Time was aroun 90 seconds earlier now half a second. Not super precise though(maybe we need to play with the data types)
     return K
@@ -34,9 +34,21 @@ array = np.delete(array, 0, 1)
 array= normalize(array)
 NumberOfClusters = 4    #Decide number of clusters
 
-ker = np.matrix(kernel_matrix(array))
+av=[]
+for i in range(array.shape[1]):
+    av.append(np.average(array[:,i]))
+gamma=0
+for f in range(array.shape[0]):
+    gamma=gamma+np.linalg.norm(array[f,:]-av) **2 #No clue how to choose this
+gamma=array.shape[0]/gamma
 
-print(ker)
+plt.hist(kernel_matrix(array, gamma).flatten(), bins=2000)
+plt.xlabel("Similarity")
+plt.ylabel("Frequency")
+plt.title("Histogram of Similarity")
+plt.show()
+
+ker = np.matrix(kernel_matrix(array, gamma))
 
 ### Build a Laplacian from the Kernel Matrix  ###
 
@@ -66,7 +78,11 @@ print(diagonal)
 print("Laplacian matrix")
 print(lap)
         
-vecs = scipy.sparse.linalg.eigs(lap, k=NumberOfClusters, which = 'SM')[1]
+# vecs = scipy.sparse.linalg.eigsh(lap, k=NumberOfClusters, which = 'SM')[1]
+#
+# print(vecs)
+
+
 #This takes ages, so if anyone has a better alternative?
 
 
@@ -79,38 +95,40 @@ vecs = scipy.sparse.linalg.eigs(lap, k=NumberOfClusters, which = 'SM')[1]
 #Laplacian matrix is pos semi def, hence the smallest eigenvalue can be found 
 #with the power iteration on ker - lambda_max I
 
-# def powermethod(A):
-#     v = np.random.rand(A.shape[1])
-#     A = np.array(A)
-#     diff = 10
-#     mu = 0
-    
-#     while diff > 0.0000000001:
-#         Av = np.matmul(A, v)
-#         v = Av/np.linalg.norm(Av)
-#         mu_new = np.dot(v, Av) / np.dot(v,v)
-#         diff = np.abs(mu-mu_new)
-#         mu = mu_new
-        
-#     return v, mu
+def powermethod(A):
+    v = np.random.rand(A.shape[1])
+    A = np.array(A)
+    diff = 10
+    mu = 0
 
-# ev_max = powermethod(ker)[1]
-# print(ev_max)
+    while diff > 0.0000000001:
+        Av = np.dot(A, v)
+        v = Av / np.linalg.norm(Av)
+        mu_new = np.dot(v, Av) / np.dot(v, v)
+        diff = np.abs(abs(mu) - abs(mu_new))
+        mu = mu_new
 
-# newker = ker - ev_max * np.identity(ker.shape[0]) #make the smallest eigenvalues have the largest absolute value
+    return v, abs(mu)
 
-# eigenvectorlist = []
-# eigenvaluelist = []
+ev_max = powermethod(lap)[1]
+print(ev_max)
 
-# for i in range(NumberOfClusters):
-#     v, mu = powermethod(newker)
-#     mu = mu + ev_max
-#     eigenvectorlist.append(v)
-#     eigenvaluelist.append(mu)
-#     newker = newker - mu * np.matmul(v, v.T)
-    
-# print(eigenvaluelist)
+newker = lap - ev_max * np.identity(lap.shape[0]) #make the smallest eigenvalues have the largest absolute value
 
+eigenvectorlist = []
+eigenvaluelist = []
+
+for i in range(NumberOfClusters):
+    v, mu = powermethod(newker)
+    mu = -mu  # Power method returns absolute value (but we know it should be negative)
+    newker = newker - mu * np.outer(v, v)
+
+    mu = mu + ev_max
+    eigenvectorlist.append(v)
+    eigenvaluelist.append(mu)
+
+print(eigenvaluelist)
+print(eigenvectorlist)
 
     
 

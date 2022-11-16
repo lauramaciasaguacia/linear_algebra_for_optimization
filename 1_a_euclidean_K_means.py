@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-
 def K_means_plus_plus(n_centroids, n_datapoints, array):
     problist = []
     centroids = []
@@ -114,4 +113,5 @@ for n_centroids in n_cent_arr:
 plt.plot(n_cent_arr, sum_of_variance)
 plt.xlabel("N Clusters")
 plt.ylabel("Sum of variances of each cluster")
+plt.title("Elbow method for selecting number of clusters")
 plt.show()
