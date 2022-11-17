@@ -23,7 +23,7 @@ NumberOfClusters = 4  # Decide number of clusters
 
 def kernel_matrix(X, g):
     X_norm = np.sum(X ** 2, axis=-1)
-    K = np.exp(-g * (X_norm[:, None] + X_norm[None, :] - 2 * np.dot(X,X.T)))  # This forumla helped so much, Time was aroun 90 seconds earlier now half a second. Not super precise though(maybe we need to play with the data types)
+    K = np.exp(-g * (X_norm[:, None] + X_norm[None, :] - 2 * np.dot(X,X.T)))
     return K
 
 av=[]
@@ -39,13 +39,8 @@ ker = np.matrix(kernel_matrix(array, gamma))
 ### Build a Laplacian from the Kernel Matrix  ###
 
 def make_similarity(A, sim):
-    with np.nditer(A, op_flags = ['readwrite']) as iteration: #iterate over all entries of ker with poss to rewrite
-        for x in iteration:
-            if x > sim:     #similarity level needs to be chosen
-                x[...] = 1
-            else:
-                x[...] = 0
-    return A
+    S= A>=sim
+    return S
 
 def make_diagonal(A):
     B = np.zeros((A.shape[0], A.shape[1]))
@@ -54,7 +49,7 @@ def make_diagonal(A):
     return B
 
 similar = make_similarity(ker, 0.95)
-diagonal = make_diagonal(ker)
+diagonal = make_diagonal(similar)
 lap = diagonal - similar
 
 print("similarity matrix")
