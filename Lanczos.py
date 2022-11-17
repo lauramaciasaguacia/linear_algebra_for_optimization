@@ -12,7 +12,7 @@ array = np.delete(array, 0, 1)
 
 def kernel_matrix(X, g):
     X_norm = np.sum(X ** 2, axis=-1)
-    K = np.exp(-g * (X_norm[:, None] + X_norm[None, :] - 2 * np.dot(X,X.T)))  # This forumla helped so much, Time was aroun 90 seconds earlier now half a second. Not super precise though(maybe we need to play with the data types)
+    K = np.exp(-g * (X_norm[:, None] + X_norm[None, :] - 2 * np.dot(X,X.T)))
     return K
 
 av = []
@@ -77,11 +77,10 @@ def Household_Matrix(v,Numb):
 
 
 def HQR(A):
-
     n=A.shape[0]
     R=A
     Q=np.matrix(np.identity(n))
-    for i in range(n): ####
+    for i in range(n):
         v=R[i:, i]
         H=Household_Matrix(v,n)
         R= np.dot(H,R)
