@@ -53,19 +53,26 @@ H= np.dot(Q.T,np.dot(A,Q))
 #
 #
 
+def get_norm(v):
+    norm=np.sqrt(np.sum( v**2 ))
 
-A=np.matrix([[1, 12, 4], [7,3,1],[2, 9,12]])
-print(A)
+    return norm
+
 def Household_Matrix(v,Numb):
     v=np.array(v)
     m=len(v)
     e1=np.zeros_like(v)
     e1[0]=1
-    r=float(np.sign(v[0])*np.linalg.norm(v))
-    w = v-r*e1
-    w = w/np.linalg.norm(w)
+    r=get_norm(v)
+    if np.sign(v[0])==0:
+        sign=1
+    else:
+        sign=np.sign(v[0])
+    w = v+sign*r*e1
+    w =  w/get_norm(w)
     H=np.identity(Numb)
-    H[Numb-m:,Numb-m:] = np.identity(m)-2* np.dot(w,w.T)
+    s=(np.identity(m)-2*np.outer(w,w))
+    H[Numb-m:,Numb-m:] = s
     return H
 
 
@@ -74,15 +81,13 @@ def HQR(A):
     n=A.shape[0]
     R=A
     Q=np.matrix(np.identity(n))
-    for i in range(n-1): ####
-        H=Household_Matrix(A[i:,i],n)
-        R= np.matmul(H,R)
-        Q= np.matmul(Q,H)
+    for i in range(n): ####
+        v=R[i:, i]
+        H=Household_Matrix(v,n)
+        R= np.dot(H,R)
+        Q= np.dot(H.T,Q)
 
-    Q=Q.T
-    return Q,R
+    return Q.T,R
 
-print('Q',HQR(A)[0])
-print('R',HQR(A)[1])
 
-# print(np.dot(HQR(A)[0].T,HQR(A)[0]))
+
