@@ -7,10 +7,12 @@ from matplotlib import pyplot as plt
 
 
 
-def kernel_elbow(array,NumberOfIterations,max):
+def kernel_elbow(array,kerneltype,NumberOfIterations,max):
     nClusters = range(1,max);
     ESD=[]
     IDs=range(array.shape[0])
+
+    ker=Kernel_Matrix(array,kerneltype)
     for i in nClusters:
         S=0
         print('analyzing number of clusters:',i)
@@ -47,8 +49,10 @@ def cluster_start(number_of_clusters,IDs): #Initialize the clusters randomly
 
     return cluster_list
 
-def Kernel_Matrix( X,g,type ):
+def Kernel_Matrix( X,type ):
     XNorm = np.sum(X ** 2, axis=-1)
+    g=gamma_parameter(X)
+
     if type=="Gaussian":
         K = np.exp(-(g) * (XNorm[:, None] + XNorm[None, :] - 2 * np.dot(X, X.T)))
 
@@ -66,14 +70,14 @@ def Kernel_Matrix( X,g,type ):
             li1.append(np.subtract(np.repeat([X[:, i]], X.shape[0], axis=0), X[:, i][:, None]) ** 2)
 
         for i in range(X.shape[1]):
-            x = np.add(np.repeat([X[:, i]], X.shape[0], axis=0), X[:, i][:, None]) * 0.5
+            x = np.add(np.repeat([X[:, i]], X.shape[0], axis=0), X[:, i][:, None])
             x = x + (x == 0)
             li2.append(x)
 
         chi_top = np.array(li1)
         chi_bottom = np.array(li2)
 
-        K = 1 - np.sum((chi_top / chi_bottom), axis=0)
+        K = np.exp(- np.sum((chi_top / chi_bottom), axis=0) )
 
     elif type=="Polynomial":
         K= np.dot(X,X.T)
@@ -267,12 +271,6 @@ def call(NumberOfClusters,ker,IDs,InitialClusters):
     return ClusterList,ESD
 
 
-
-
-
-
-
-
 ###########STEP 0: READ THE DATA AND NORMALIZING ################
 
 
@@ -281,51 +279,62 @@ df = pd.read_csv('EastWestAirlinesCluster.csv')
 array = df.to_numpy(dtype=np.float32)
 array = normalize_min_max(array)
 array = np.delete(array, 0, 1)
-gamma= gamma_parameter(array)
 
 
-###########STEP 1: KERNEL CHOICE ################
-StabilityIndex=[]
-Ratio=[]
-MinStabilityIndex=[]
-KerTypes = ["Gaussian", "Cauchy", "HyperTangent","Chi-Squared","Polynomial"]
-j=3
-n=10
-for i in KerTypes:
-    SI=0
-    ER=0
-    minSI=1
-    q = 0
-    ker = Kernel_Matrix(array, j, i)
-    print(i)
-    while q<n:
-        print(q)
-        q += 1
-        si, er = stability( j , ker , 0.1,(q+1))
-        SI = SI + si
-        ER = ER +er
-        if si<minSI:
-            minSI=si
-    StabilityIndex.append(SI/n)
-    Ratio.append(ER/n)
-    MinStabilityIndex.append(minSI)
-print(tabulate([StabilityIndex,MinStabilityIndex, Ratio], headers=KerTypes, tablefmt="github"))
-print(tabulate([StabilityIndex,MinStabilityIndex, Ratio], headers=KerTypes, tablefmt="latex"))
+# ###########STEP 1: KERNEL CHOICE ################
+# StabilityIndex=[]
+# Ratio=[]
+# MinStabilityIndex=[]
+# KerTypes = ["Gaussian", "Cauchy", "HyperTangent","Chi-Squared","Polynomial"]
+# j=3
+# n=6
+# for i in KerTypes:
+#     SI=0
+#     ER=0
+#     minSI=1
+#     q = 0
+#     ker = Kernel_Matrix(array, i)
+#     print(i)
+#     while q<n:
+#         print(q)
+#         q += 1
+#         si, er = stability( j , ker , 0.1,(q+1))
+#         SI = SI + si
+#         ER = ER +er
+#         if si<minSI:
+#             minSI=si
+#     StabilityIndex.append(SI/n)
+#     Ratio.append(ER/n)
+#     MinStabilityIndex.append(minSI)
+# print(tabulate([StabilityIndex,MinStabilityIndex, Ratio], headers=KerTypes, tablefmt="github"))
+# print(tabulate([StabilityIndex,MinStabilityIndex, Ratio], headers=KerTypes, tablefmt="latex"))
 
 ###########STEP 2: NUMBER OF CLUSTERS CHOICE################
 
-#
-# NumberOfClusters=3
-# ker = Kernel_Matrix(array, 3, "Polynomial")
-#
-# IDs=range(array.shape[0])
-# InitialClusters=cluster_start(NumberOfClusters,IDs)
-# Best_cluster_list,ESD= call(NumberOfClusters,ker,IDs,InitialClusters)
-#
-#
-# head = ['Balance', 'Qual_miles', 'cc1_miles', 'cc2_miles', 'cc3_miles', 'Bonus_miles', 'Bonus_trans',
-#             'Flight_miles_12mo', 'Flight_trans_12', 'Days_since_enroll', 'Award']
-# # print_my_table(array,NumberOfClusters,Best_cluster_list,head)
-# boxplots(array,Best_cluster_list,NumberOfClusters, head)
-# # visualize_clusters(array,Best_cluster_list,NumberOfClusters, head)
+# kernel_elbow(array,10,8)
+
+
+###########STEP 3: KERNEL CLUSTERING################
+
+IDs=range(array.shape[0])
+type="Chi-Squared"
+ker=Kernel_Matrix(array,type)
+NumberOfIterations = 5
+NumberOfClusters = 3
+for i in range(NumberOfIterations):
+    InitialClusters=cluster_start(NumberOfClusters,IDs)
+    ClusterList,ESD = call(NumberOfClusters, ker, IDs, InitialClusters)
+    print(i)
+    if BestESD>ESD or i==0:
+        BestESD = ESD
+        BestClusterList= ClusterList.copy()
+
+###########STEP 4: DATA VISUALIZATION################
+
+
+head = ['Balance', 'Qual_miles', 'cc1_miles', 'cc2_miles', 'cc3_miles', 'Bonus_miles', 'Bonus_trans',
+            'Flight_miles_12mo', 'Flight_trans_12', 'Days_since_enroll', 'Award','Size']
+print_my_table(array,NumberOfClusters,Best_cluster_list,head)
+boxplots(array,Best_cluster_list,NumberOfClusters, head)
+# visualize_clusters(array,Best_cluster_list,NumberOfClusters, head)
 # scatter(array,Best_cluster_list,NumberOfClusters,head)
