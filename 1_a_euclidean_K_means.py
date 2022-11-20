@@ -55,21 +55,20 @@ array = normalize_min_max(array)
 
 array = np.delete(array, 0, 1)
 
-n_datapoints = array.shape[0]
-
-n_cent_arr = np.arange(2, 15)
-
 dist_list = []
 
 n_samples = 10
 
 sum_of_variance = []
 
+n_cent_arr = np.arange(2, 15)
+
 for n_centroids in n_cent_arr:
     # print(n_centroids)
     cen_dist_list = []
     cen_var_list = []
     for i in range(n_samples):
+        n_datapoints = array.shape[0]
         centroids = K_means_plus_plus(n_centroids, n_datapoints, array)
 
         centroid_id = np.zeros(array.shape[0])
@@ -107,11 +106,11 @@ for n_centroids in n_cent_arr:
         cen_dist_list.append(dist_sum)
         cen_var_list.append(var / n_centroids)
 
-    sum_of_variance.append(sum(cen_var_list))
+    sum_of_variance.append(min(cen_var_list))
     dist_list.append(sum(cen_dist_list))
 
 plt.plot(n_cent_arr, sum_of_variance)
 plt.xlabel("N Clusters")
-plt.ylabel("Sum of variances of each cluster")
+plt.ylabel("Min of variances of each cluster")
 plt.title("Elbow method for selecting number of clusters")
 plt.show()

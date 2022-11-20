@@ -32,7 +32,7 @@ df = pd.read_csv('EastWestAirlinesCluster.csv')
 array = df.to_numpy(dtype=np.float32)
 array = np.delete(array, 0, 1)
 array= normalize(array)
-NumberOfClusters = 4    #Decide number of clusters
+NumberOfClusters = 3    #Decide number of clusters
 
 av=[]
 for i in range(array.shape[1]):

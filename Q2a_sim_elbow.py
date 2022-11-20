@@ -113,33 +113,81 @@ def K_means_clustering(NumberOfClusters, array, centroids):
     return centroid_id
 
 
-similar = make_similarity(ker, 0.97)
-diagonal = make_diagonal(similar)
-lap = diagonal - similar
+dist_list = []
 
-print("similarity matrix")
-print(similar)
-print("diagonal matrix")
-print(diagonal)
-print("Laplacian matrix")
-print(lap)
+n_samples = 5
 
-vecs = scipy.sparse.linalg.eigsh(scipy.sparse.csr_matrix(lap), k=NumberOfClusters, which='SM')[1]
-vecs = normalize(vecs)
+sum_of_variance = []
+
+sim_arry = np.arange(0.1, 1.0, 0.1)
+
+for sim in sim_arry:
+    # print(n_centroids)
+    cen_dist_list = []
+    cen_var_list = []
+    for i in range(n_samples):
+        print(i)
+
+        similar = make_similarity(ker, sim)
+        diagonal = make_diagonal(similar)
+        lap = diagonal - similar
+
+        vecs = scipy.sparse.linalg.eigsh(scipy.sparse.csr_matrix(lap), k=NumberOfClusters, which='SM')[1]
+        vecs = normalize(vecs)
+
+        array = vecs
+
+        centroids = K_means_plus_plus(NumberOfClusters, vecs.shape[0], vecs)
+
+        n_centroids = NumberOfClusters
+
+        centroid_id = np.zeros(array.shape[0])
+
+        old_sum = np.inf
+
+        improvement = 1
+        while improvement > 0:
+            dis_arr = np.zeros(array.shape[0])
+            for i in range(array.shape[0]):
+                x = array[i]
+                centroid_distances = np.zeros(n_centroids)
+                for j in range(n_centroids):
+                    centroid_distances[j] = np.sum((x - centroids[j]) ** 2)
+
+                centroid_id[i] = np.argmin(centroid_distances)
+                dis_arr[i] = np.min(centroid_distances)
+
+            for k in range(n_centroids):
+                n_elements = np.count_nonzero(centroid_id == k)
+                if n_elements != 0:
+                    centroids[k] = np.sum(array, axis=0, where=(centroid_id[:, None] == k)) / n_elements
 
 
-centroids = K_means_plus_plus(NumberOfClusters, vecs.shape[0], vecs)
-print(centroids)
-print(vecs.shape[0])
+            dist_sum = sum(dis_arr)
+            improvement = old_sum - dist_sum
+            old_sum = dist_sum
+
+        var = 0
+        k = 0
+        for k in range(n_centroids):
+            n_elements = np.count_nonzero(centroid_id == k)
+            if n_elements != 0:
+                var += np.sum((array - centroids[k]) ** 2, where=(centroid_id[:, None] == k)) / n_elements
+        cen_dist_list.append(dist_sum)
+        cen_var_list.append(var / n_centroids)
+
+    sum_of_variance.append(min(cen_var_list))
+    dist_list.append(sum(cen_dist_list))
+
+plt.plot(sim_arry, sum_of_variance)
+plt.xlabel("Sim_threshold")
+plt.ylabel("Min of variances of 5 samples")
+plt.title("Elbow method for selecting similarity threshold")
+plt.show()
 
 
-cluster_allocation = np.rint(K_means_clustering(NumberOfClusters, vecs, centroids)).astype(np.int)
 
-np.set_printoptions(threshold=4000)
-print(cluster_allocation)
-
-unique, counts = np.unique(cluster_allocation, return_counts=True)
-print(np.asarray((unique.astype(np.int), np.rint(counts).astype(np.int))).T)
+# print(np.asarray((unique.astype(np.int), np.rint(counts).astype(np.int))).T)
 
 # Each row (datapoint) is allocated to a cluster from 0 to (N-1) the index within the list
 # can be used to access the original datapoint in the original array

@@ -20,8 +20,10 @@ pd.set_option('display.max_columns', 500)
 df = pd.read_csv('EastWestAirlinesCluster.csv')
 array = df.to_numpy(dtype=np.float32)
 array = np.delete(array, 0, 1)
+# array = array[0:100]
+# print(array.shape)
 array= normalize(array)
-NumberOfClusters=4
+NumberOfClusters=3
 
 def kernel_matrix(X, g):
     X_norm = np.sum(X ** 2, axis=-1)
@@ -133,27 +135,58 @@ def lanczos(A, num):
     eigenvectors=[]
     for i in small_eigenvectors:
         v = Q @ i
-        eigenvectors.append(v/np.linalg.norm(v))
+        eigenvectors.append(v)
 
-    eigenvectors = np.array(eigenvectors).T  
+    eigenvectors = np.array(eigenvectors)
         
     return eigenvalues, eigenvectors
     
-    
-    
-#A=np.matrix([[1, 12, 4], [12,3,4],[4, 4,12]])   
+
 print('begin')
-print(lanczos(lap,30)[0][0,0])
 
-#Inv = np.linalg.inv(lap+ 10**(-10) * np.identity(lap.shape[0]))
-#print(lanczos(Inv, 50)[0])
-        
-ev_max = lanczos(lap,30)[0][0,0]
-
+ev_max = lanczos(lap, 30)[0][0,0]
 
 shiftlap = lap - 2*ev_max *np.identity(lap.shape[0])
 
-shiftev = lanczos(shiftlap, 50)[0] 
+shiftev, eigenvectors = lanczos(shiftlap, 50)
 unshiftev = shiftev + 2*ev_max
 print(unshiftev)
-print(scipy.sparse.linalg.eigsh(lap, k=NumberOfClusters, which = 'SM')[0]) 
+print(eigenvectors)
+print(eigenvectors.shape)
+scipy_evs = scipy.sparse.linalg.eigsh(scipy.sparse.csr_matrix(lap), k=NumberOfClusters, which = 'SM')[1]
+scipy_evs = scipy_evs.T
+
+calculated_evs = eigenvectors[0:NumberOfClusters, 0]
+
+np.set_printoptions(threshold=4000)
+print(calculated_evs)
+print(scipy_evs)
+
+# print(scipy_evs[:, None])
+# print(calculated_evs[:, None])
+
+print(calculated_evs.shape)
+print(scipy_evs.shape)
+
+def angle(vector1, vector2):
+    # cos(theta) = v1 dot v2 / ||v1|| * ||v2||
+    numerator = np.dot(vector1, vector2)
+    denominator = np.linalg.norm(vector1) * np.linalg.norm(vector2)
+    x = numerator / denominator if denominator else 0
+    return np.arccos(x)
+
+arr = []
+for i in range(NumberOfClusters):
+    li = []
+    for j in range(NumberOfClusters):
+        a = calculated_evs[i]
+        b = scipy_evs[j]
+        li.append(angle(a, b))
+
+    arr.append(li)
+
+print(np.array(arr))
+
+
+
+
