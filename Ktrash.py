@@ -321,6 +321,7 @@ type="Chi-Squared"
 ker=Kernel_Matrix(array,type)
 NumberOfIterations = 5
 NumberOfClusters = 3
+BestESD=0
 for i in range(NumberOfIterations):
     InitialClusters=cluster_start(NumberOfClusters,IDs)
     ClusterList,ESD = call(NumberOfClusters, ker, IDs, InitialClusters)
