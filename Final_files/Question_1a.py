@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 "After choosing the number of clusters using the elbow method this code is used to investigate the clusters found with"
 "the optimal N. We cluster the data for 10 samples (there is some randomness due to the K-means++ method) and choose"
@@ -41,7 +42,7 @@ def K_means_plus_plus(n_centroids, n_datapoints, array):  # The k-means++ algori
 
 
 def normalize_min_max(array):  # min-max normalization
-    for i in range(1, array.shape[1]):
+    for i in range(array.shape[1]):
         array[:, i] = (array[:, i] - np.min(array[:, i])) / (np.max(array[:, i]) - np.min(array[:, i]))
 
     return array
@@ -50,19 +51,20 @@ def normalize_min_max(array):  # min-max normalization
 df = pd.read_csv('../EastWestAirlinesCluster.csv')
 
 cols = df.columns
+print(cols)
 
 array = df.to_numpy(dtype=np.float32)  # Convert to numpy array
 
 array_copy = np.delete(array, 0, 1)
 
-array = normalize_min_max(array)  # We decide to use min max normalization
-
 array = np.delete(array, 0, 1)  # We remove the IDs column (see pdf.)
+
+array = normalize_min_max(array)  # We decide to use min max normalization
 
 n_samples = 10
 
 cent_id_list = []
-var_list = []
+ESS_list = []
 cent_list = []
 
 for s in range(n_samples):  # We will run for n_samples and use choose the clusters with the best performance
@@ -94,19 +96,19 @@ for s in range(n_samples):  # We will run for n_samples and use choose the clust
         improvement = old_sum - dist_sum
         old_sum = dist_sum
 
-    var = 0  # We store the sum of variances in this variable
+    ESS = 0  # We store the sum of variances in this variable
     k = 0
     for k in range(n_centroids):
         n_elements = np.count_nonzero(centroid_id == k)
         if n_elements != 0:
-            var += np.sum((array - centroids[k]) ** 2, where=(centroid_id[:, None] == k)) / n_elements
+            ESS += np.sum((array - centroids[k]) ** 2, where=(centroid_id[:, None] == k))
 
-    var_list.append(var)
+    ESS_list.append(ESS)
     cent_id_list.append(centroid_id)
     cent_list.append(centroids)
 
 
-best_sample = np.argmin(var_list)
+best_sample = np.argmin(ESS_list)
 print(best_sample)
 
 best_clustering = cent_id_list[best_sample]
@@ -127,3 +129,28 @@ for i in range(array.shape[1]):
 
 pd.set_option('display.max_columns', 500)
 print(centroid_df)  # Centroid locations in the non-normalized data
+
+
+def Boxplots(array,ClusterList,NumberOfClusters,head):
+    for i in range(array.shape[1]):
+        d = []
+        for j in range(NumberOfClusters):
+            d.append(array[ClusterList[j], i])
+        sns.violinplot(data=d)
+        plt.title(f'Clusters on Feature: {head[i + 1]}')
+        plt.xlabel("Cluster ID")
+        plt.show()
+    return
+
+
+clusterlist = []
+for j in range(n_centroids):
+    clusterlist.append([])
+
+for f in range(len(best_clustering)):
+    clusterlist[int(best_clustering[f])].append(f)
+
+for f in range(len(best_clustering)):
+    clusterlist[int(best_clustering[f])].append(f)
+
+Boxplots(array_copy, clusterlist, n_centroids, cols)  # Graph the boxplots
