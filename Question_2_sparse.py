@@ -44,8 +44,6 @@ for f in range(array.shape[0]):
     gamma = gamma + np.linalg.norm(array[f, :] - av) ** 2  # No clue how to choose this
 gamma = array.shape[0] / gamma
 
-# plt.hist(kernel_matrix(array).flatten(), bins=2000)
-# plt.show()
 
 ker = np.matrix(kernel_matrix(array, gamma))
 
