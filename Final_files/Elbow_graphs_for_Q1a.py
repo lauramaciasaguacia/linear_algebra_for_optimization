@@ -51,7 +51,7 @@ def normalize_z_score(array):  # We implemented but decided not to use z-score (
     return array
 
 
-df = pd.read_csv('../EastWestAirlinesCluster.csv')  # Load the data
+df = pd.read_csv('../Assignment_1/EastWestAirlinesCluster.csv')  # Load the data
 
 array = df.to_numpy(dtype=np.float32)  # Convert to numpy array
 

@@ -48,7 +48,7 @@ def normalize_min_max(array):  # min-max normalization
     return array
 
 
-df = pd.read_csv('../EastWestAirlinesCluster.csv')
+df = pd.read_csv('../Assignment_1/EastWestAirlinesCluster.csv')
 
 cols = df.columns
 print(cols)
