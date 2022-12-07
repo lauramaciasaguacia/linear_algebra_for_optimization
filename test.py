@@ -5,6 +5,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 import numpy as np
 from sklearn.model_selection import KFold
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 pd.set_option('display.max_columns', 500)
@@ -21,20 +23,29 @@ X = df[["age", "sex", "chest pain type", "resting blood pressure", "serum choles
 
 y = df["heart disease"].values
 
-C_arr = 10 ** np.linspace(0, 9, num=10)
-gamma_arr = 10 ** np.linspace(-10, 0, num=10)
+
+n_C = 5
+n_gamma = 5
+C_arr = 10 ** np.linspace(0, 9, num=n_C)
+gamma_arr = 10 ** np.linspace(-10, 0, num=n_gamma)
 
 K = 5
 test_size = 270 / 5
 
 kf = KFold(n_splits=K)
 
+
 def accuracy(y, pred_y):
     acc = 1 - (np.sum(abs(y - pred_y) / 2) / len(y))
     return acc
 
 
+results = np.zeros(shape=(n_C, n_gamma))
+
+i = 0
 for C in C_arr:
+    print(i)
+    j = 0
     for gamma in gamma_arr:
         acc_sum = 0
         for train_index, test_index in kf.split(X):
@@ -51,7 +62,16 @@ for C in C_arr:
 
         mean_acc = acc_sum / K
 
+        results[i][j] = mean_acc
 
+        j += 1
+    i += 1
+
+
+sns.heatmap(results, xticklabels=gamma_arr, yticklabels=C_arr)
+plt.xlabel("gamma")
+plt.ylabel("C")
+plt.show()
 
 
 
