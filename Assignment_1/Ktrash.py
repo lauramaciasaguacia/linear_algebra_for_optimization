@@ -51,6 +51,7 @@ def cluster_start(number_of_clusters,IDs): #Initialize the clusters randomly
 
 def Kernel_Matrix( X,type ):
     XNorm = np.sum(X ** 2, axis=-1)
+    print(XNorm)
     g=gamma_parameter(X)
 
     if type=="Gaussian":
@@ -317,25 +318,25 @@ array = np.delete(array, 0, 1)
 ###########STEP 3: KERNEL CLUSTERING################
 
 IDs=range(array.shape[0])
-type="Chi-Squared"
+type="Gaussian"
 ker=Kernel_Matrix(array,type)
-NumberOfIterations = 5
-NumberOfClusters = 3
-BestESD=0
-for i in range(NumberOfIterations):
-    InitialClusters=cluster_start(NumberOfClusters,IDs)
-    ClusterList,ESD = call(NumberOfClusters, ker, IDs, InitialClusters)
-    print(i)
-    if BestESD>ESD or i==0:
-        BestESD = ESD
-        BestClusterList= ClusterList.copy()
-
-###########STEP 4: DATA VISUALIZATION################
-
-
-head = ['Balance', 'Qual_miles', 'cc1_miles', 'cc2_miles', 'cc3_miles', 'Bonus_miles', 'Bonus_trans',
-            'Flight_miles_12mo', 'Flight_trans_12', 'Days_since_enroll', 'Award','Size']
-print_my_table(array,NumberOfClusters,Best_cluster_list,head)
-boxplots(array,Best_cluster_list,NumberOfClusters, head)
-# visualize_clusters(array,Best_cluster_list,NumberOfClusters, head)
-# scatter(array,Best_cluster_list,NumberOfClusters,head)
+# NumberOfIterations = 5
+# NumberOfClusters = 3
+# BestESD=0
+# for i in range(NumberOfIterations):
+#     InitialClusters=cluster_start(NumberOfClusters,IDs)
+#     ClusterList,ESD = call(NumberOfClusters, ker, IDs, InitialClusters)
+#     print(i)
+#     if BestESD>ESD or i==0:
+#         BestESD = ESD
+#         BestClusterList= ClusterList.copy()
+#
+# ###########STEP 4: DATA VISUALIZATION################
+#
+#
+# head = ['Balance', 'Qual_miles', 'cc1_miles', 'cc2_miles', 'cc3_miles', 'Bonus_miles', 'Bonus_trans',
+#             'Flight_miles_12mo', 'Flight_trans_12', 'Days_since_enroll', 'Award','Size']
+# print_my_table(array,NumberOfClusters,Best_cluster_list,head)
+# boxplots(array,Best_cluster_list,NumberOfClusters, head)
+# # visualize_clusters(array,Best_cluster_list,NumberOfClusters, head)
+# # scatter(array,Best_cluster_list,NumberOfClusters,head)

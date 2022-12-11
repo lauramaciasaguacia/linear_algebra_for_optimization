@@ -9,6 +9,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 
+
 pd.set_option('display.max_columns', 500)
 df = pd.read_csv('heart.csv', names=["age", "sex", "chest pain type", "resting blood pressure", "serum cholestoral",
                                      "fasting blood sugar", "resting electrocardiographic results",
