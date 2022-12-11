@@ -148,7 +148,7 @@ def Adam(H,y):
 
 
 def main():
-    n=5
+    n=5 #chose how many starting points
     H=hint(n)
 
     #Blackbox funtcion using H
