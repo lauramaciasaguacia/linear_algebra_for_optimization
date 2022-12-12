@@ -25,8 +25,8 @@ X = df[["age", "sex", "chest pain type", "resting blood pressure", "serum choles
 y = df["heart disease"].values
 
 
-n_C = 10
-n_gamma = 10
+n_C = 5
+n_gamma = 5
 C_arr = 10 ** np.linspace(0, 9, num=n_C)
 gamma_arr = 10 ** np.linspace(-10, 0, num=n_gamma)
 
@@ -68,7 +68,7 @@ for C in C_arr:
 
 print(results)
 
-s = sns.heatmap(results, xticklabels=5, yticklabels=5)
+s = sns.heatmap(results)
 s.set(ylabel='C', xlabel='Gamma')
 plt.show()
 

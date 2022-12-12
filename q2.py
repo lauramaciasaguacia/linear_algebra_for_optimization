@@ -144,7 +144,7 @@ def Adam(H,y):
     epsilon = np.ones([1,2])* (10 ** (-8))
     k=1
 
-    xk=[-5, 4.5]  #choose starting point
+    xk=[np.random.uniform(-10, 0), np.random.uniform(0, 9)]  #choose starting point
 
     tol=1
 
