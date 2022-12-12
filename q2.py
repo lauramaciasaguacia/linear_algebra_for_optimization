@@ -33,13 +33,13 @@ def accuracy(y, pred_y):
 
 def hint(n):
     M=np.zeros([n,2])
-    M[:, 0] = np.random.uniform(-10, 0,n) #log(gamma) first column
-    M[:,1] = np.random.uniform(0,9,n) #log(C) second column
+    M[:, 0] = np.random.uniform(-10, 0,n)  #log(gamma) first column
+    M[:,1] = np.random.uniform(0,9,n)  #log(C) second column
 
     return M
 
 def MakeSigma(H):
-    l=1 #how to choose ASK   #Grid search fr this hp
+    l=1  #how to choose ASK   #Grid search fr this hp
     HNorm = np.sum(H ** 2, axis=-1)
     Sigma = np.exp(- (HNorm[:, None] + HNorm[None, :] - 2 * np.dot(H, H.T))/(2* l**2))
     return Sigma
@@ -96,7 +96,12 @@ def GetGrad(H,h,y):
     kC = Help [:,1]
 
     S=MakeSigma(H)
-    print(S)
+    eigs = np.linalg.eigvals(S)
+    print("eigs", eigs)
+    if np.all(eigs < 0):
+        print(np.linalg.eigvals(S))
+        raise Exception("Not positive-semidefinite")
+
     Sinv = np.linalg.inv( S ) #how to invert this
 
     Sy = np.dot(Sinv,  y[:, None])
@@ -104,9 +109,12 @@ def GetGrad(H,h,y):
 
     mu= np.dot(k.T , Sy)[0,0]
 
-
+    print("k", k)
     print("srdmake",np.dot(k.T, Sk)[0,0])
-    std = np.sqrt(1 - np.dot(k.T, Sk)[0,0])
+    if np.dot(k.T, Sk)[0,0] > 1:
+        std = 0.001
+    else:
+        std = np.sqrt(1 - np.dot(k.T, Sk)[0,0])
     mugamma = np.dot(kgamma, Sy)[0]
     muC= np.dot(kC, Sy)[0]
     print("std",std)
@@ -130,7 +138,7 @@ def Adam(H,y):
     m = np.zeros([1,2])
     v = np.zeros([1, 2])
 
-    alpha= 0.001
+    alpha= 0.1
     b1=0.9
     b2=0.999
     epsilon = np.ones([1,2])* (10 ** (-8))
@@ -140,8 +148,8 @@ def Adam(H,y):
 
     tol=1
 
-    while k <100 and tol>0.00001:
-        grad =  GetGrad(H,xk,y)
+    while k < 50 and tol>0.001:
+        grad = GetGrad(H,xk,y)
 
         mNew = (b1 * m + (1-b1) * grad) /(1-b1**k)
         vNew = (b2 * v + (1-b2) * np.square(grad)) / (1-b2**k)   #as suggested in the paper to compute bias corrected value
@@ -178,10 +186,6 @@ def Adam(H,y):
         tol = np.linalg.norm(xk - xk1)
         xk = xk1
         k = k + 1
-
-
-
-
 
     return xk
 
