@@ -235,6 +235,19 @@ def EvalAcc(hnew,X,y,kf):
 
     return mean_acc
 
+def imaging(z):
+    BestSoFar=[]
+    value=z[0]
+    for i in range(len(z)):
+        if z[i]>=value:
+            value=z[i]
+        BestSoFar.append(value)
+
+    plt.plot(range(len(z)),BestSoFar)
+    plt.show()
+
+    return
+
 
 def main():
     n=5 #chose how many starting points
@@ -250,7 +263,7 @@ def main():
         mean_acc = EvalAcc(h,X,y,kf)
         z= np.append(z,mean_acc )
 
-    for i in range(10):
+    for i in range(100):
         print("Iteration ", i)
         hnew =Adam(H,z)
         H=np.vstack( (H, hnew) )
@@ -263,6 +276,7 @@ def main():
     print("z",z)
     print(z[bestPosition],BestGamma, BestC)
 
+    imaging(z)
 
     return
 
