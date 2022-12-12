@@ -33,8 +33,8 @@ def accuracy(y, pred_y):
 
 def hint(n):
     M=np.zeros([n,2])
-    M[:, 0] = np.random.uniform(10 ** -10, 1,n) #gamma first column
-    M[:,1] = np.random.uniform(1,10**9,n) #C second column
+    M[:, 0] = np.random.uniform(-10, 0,n) #log(gamma) first column
+    M[:,1] = np.random.uniform(0,9,n) #log(C) second column
 
     return M
 
@@ -45,15 +45,15 @@ def MakeSigma(H):
     return Sigma
 
 def MakeKappa(H,h):
-    l=100000000 #how to choose ASK   #Grid search fr this hp
+    l=1 #how to choose ASK   #Grid search fr this hp
     hvec = np.tile(h, (H.shape[0], 1))
     Norm2 = np.sum(np.square(H - hvec), axis=1)
-    f= -Norm2[:, None]/(2 * l ** 2)
+    f= Norm2[:, None]/(2 * l ** 2)
 
-    return np.exp( (f) )
+    return np.exp( -(f) )
 
 def MakeKappaPrime(H,h):
-    l=100000000 #how to choose ASK   #Grid search fr this hp
+    l=1 #how to choose ASK   #Grid search fr this hp
     K=MakeKappa(H,h)
 
     hvec = np.tile(h, (H.shape[0], 1))
@@ -89,18 +89,14 @@ def MakeKappaPrime(H,h):
 def GetGrad(H,h,y):
 
     ybest= np.max(y)
-    print("Hh",H,h)
     k=MakeKappa(H,h)
-
-    print('AAA',k)
-
     Help = MakeKappaPrime(H,h)
 
     kgamma= Help[:,0]
     kC = Help [:,1]
 
     S=MakeSigma(H)
-
+    print(S)
     Sinv = np.linalg.inv( S ) #how to invert this
 
     Sy = np.dot(Sinv,  y[:, None])
@@ -108,16 +104,16 @@ def GetGrad(H,h,y):
 
     mu= np.dot(k.T , Sy)[0,0]
 
-    std = np.sqrt(1 - np.dot(k.T, Sk)[0,0])
-    print('std',std)
 
+    print("srdmake",np.dot(k.T, Sk)[0,0])
+    std = np.sqrt(1 - np.dot(k.T, Sk)[0,0])
     mugamma = np.dot(kgamma, Sy)[0]
     muC= np.dot(kC, Sy)[0]
-
+    print("std",std)
 
     stdgamma = (-1) * np.dot(kgamma.T, Sk)[0]/std
     stdC = (-1) * np.dot(kC.T,Sk)[0]/std
-    print("stdgamma",stdgamma)
+
 
 
     dwrtgamma = norm.pdf((ybest - mu) / std) * (mugamma * std - (ybest - mu) * stdgamma) / std ** 2
@@ -125,6 +121,7 @@ def GetGrad(H,h,y):
 
     Grad= np.array([dwrtgamma,dwrtC])
 
+    print("Grad",Grad)
     return Grad
 
 
@@ -139,48 +136,52 @@ def Adam(H,y):
     epsilon = np.ones([1,2])* (10 ** (-8))
     k=1
 
-    xk=[10** -10, 1]  #choose starting point
+    xk=[-5, 4.5]  #choose starting point
 
     tol=1
 
-    while k <100 :
+    while k <100 and tol>0.00001:
         grad =  GetGrad(H,xk,y)
 
         mNew = (b1 * m + (1-b1) * grad) /(1-b1**k)
         vNew = (b2 * v + (1-b2) * np.square(grad)) / (1-b2**k)   #as suggested in the paper to compute bias corrected value
 
 
-        tol = alpha * np.divide(mNew, (np.sqrt(v) + epsilon) )
+        move = alpha * np.divide(mNew, (np.sqrt(vNew) + epsilon) )
 
-        xk1= xk- tol
+        xk1= xk-move
 
 
         m = mNew
         v = vNew
         print("k:",k,"xk ",xk)
-        xk=xk1
-        k= k + 1
 
 
-    xk=np.array(xk)[0]
+        xk = np.array(xk)[0]
+        xk1 = np.array(xk1)[0]
+        if xk1[0] < -10:
+            xk1[0] = -10
+            print("Gamma")
 
-    if xk[0]< 10**-10:
-        xk[0]= 10**-10
-        print("Gamma")
+        if xk1[0] > 0:
+            xk1[1] = 0
+            print("Gamma")
 
-    if xk[0]>1:
-        xk[1] = 1
-        print("Gamma")
+        if xk1[1] < 0:
+            xk1[1] = 0
+            print("C")
+
+        if xk1[1] > 9:
+            xk1[1] = 9
+            print("C")
+
+        tol = np.linalg.norm(xk - xk1)
+        xk = xk1
+        k = k + 1
 
 
-    if xk[1]<1:
-        xk[1] = 1
-        print("C")
 
 
-    if xk[1]>10**9:
-        xk[1]= 10**9
-        print("C")
 
     return xk
 
@@ -192,7 +193,7 @@ def EvalAcc(hnew,X,y,kf):
     for train_index, test_index in kf.split(X):
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
-        clf = make_pipeline(StandardScaler(), SVC(C=hnew[0], gamma=hnew[1], kernel='rbf'))
+        clf = make_pipeline(StandardScaler(), SVC(C=10 ** hnew[0], gamma=10 ** hnew[1], kernel='rbf'))
         clf.fit(X_train, y_train)
 
         y_pred = clf.predict(X_test)
