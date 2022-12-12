@@ -24,8 +24,8 @@ X = df[["age", "sex", "chest pain type", "resting blood pressure", "serum choles
 y = df["heart disease"].values
 
 
-n_C = 5
-n_gamma = 5
+n_C = 10
+n_gamma = 10
 C_arr = 10 ** np.linspace(0, 9, num=n_C)
 gamma_arr = 10 ** np.linspace(-10, 0, num=n_gamma)
 
@@ -40,12 +40,9 @@ def accuracy(y, pred_y):
     return acc
 
 
-results = np.zeros(shape=(n_C, n_gamma))
+results = pd.DataFrame(index=C_arr, columns=gamma_arr)
 
-i = 0
 for C in C_arr:
-    print(i)
-    j = 0
     for gamma in gamma_arr:
         acc_sum = 0
         for train_index, test_index in kf.split(X):
@@ -62,15 +59,16 @@ for C in C_arr:
 
         mean_acc = acc_sum / K
 
-        results[i][j] = mean_acc
+        results[gamma][C] = mean_acc
 
-        j += 1
-    i += 1
+# xlab = ["{:.1e}".format(item) for item in gamma_arr]
+# ylab = ["{:.1e}".format(item) for item in C_arr]
 
 
-sns.heatmap(results, xticklabels=gamma_arr, yticklabels=C_arr)
-plt.xlabel("gamma")
-plt.ylabel("C")
+print(results)
+
+s = sns.heatmap(results, xticklabels=5, yticklabels=5)
+s.set(ylabel='C', xlabel='Gamma')
 plt.show()
 
 
