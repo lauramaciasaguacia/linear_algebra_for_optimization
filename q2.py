@@ -125,8 +125,7 @@ def Adam(H,y):
     tol=1
 
     while k <100 and tol>0.01:
-        #I think we should put a minus here because we want to minimiza the NEGATIVE of the fucntion
-        grad = (-1) * GetGrad(H,xk,y)
+        grad =  GetGrad(H,xk,y)
 
         mNew = (b1 * m + (1-b1) * grad) /(1-b1**k)
         vNew = (b2 * v + (1-b2) * np.square(grad)) / (1-b2**k)   #as suggested in the paper to compute bias corrected value
