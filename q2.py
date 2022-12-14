@@ -96,11 +96,6 @@ def GetGrad(H,h,y):
     kC = Help [:,1]
 
     S=MakeSigma(H)
-    eigs = np.linalg.eigvals(S)
-    print("eigs", eigs)
-    if np.all(eigs < 0):
-        print(np.linalg.eigvals(S))
-        raise Exception("Not positive-semidefinite")
 
     Sinv = np.linalg.inv( S ) #how to invert this
 
@@ -109,15 +104,14 @@ def GetGrad(H,h,y):
 
     mu= np.dot(k.T , Sy)[0,0]
 
-    print("k", k)
-    print("srdmake",np.dot(k.T, Sk)[0,0])
     if np.dot(k.T, Sk)[0,0] > 1:
-        std = 0.001
+        print("Okai we have a problem")
+        std = 0.0001
     else:
         std = np.sqrt(1 - np.dot(k.T, Sk)[0,0])
     mugamma = np.dot(kgamma, Sy)[0]
     muC= np.dot(kC, Sy)[0]
-    print("std",std)
+    # print("std",std)
 
     stdgamma = (-1) * np.dot(kgamma.T, Sk)[0]/std
     stdC = (-1) * np.dot(kC.T,Sk)[0]/std
@@ -129,8 +123,30 @@ def GetGrad(H,h,y):
 
     Grad= np.array([dwrtgamma,dwrtC])
 
-    print("Grad",Grad)
+    # print("Grad",Grad)
     return Grad
+
+
+def graddesc(H,y):
+    alpha= 0.01
+    xk = [-5, 4.5]  # choose starting point
+    k=0
+    tol=1
+    while k <100 and tol>0.00000001:
+        grad =  GetGrad(H,xk,y)
+        move= alpha* grad
+        xk1 = xk - move
+        print("xk desc",xk)
+        tol=np.linalg.norm(xk1-xk)
+        print("tol",tol)
+        xk=xk1
+        k+=1
+        xk = np.array(xk)
+        xk1 = np.array(xk1)
+
+
+    return xk
+
 
 
 def Adam(H,y):
@@ -138,17 +154,17 @@ def Adam(H,y):
     m = np.zeros([1,2])
     v = np.zeros([1, 2])
 
-    alpha= 0.1
+    alpha= 0.001
     b1=0.9
     b2=0.999
     epsilon = np.ones([1,2])* (10 ** (-8))
     k=1
 
-    xk=[np.random.uniform(-10, 0), np.random.uniform(0, 9)]  #choose starting point
+    xk=[np.random.uniform(-10, 0), np.random.uniform(0, 9)]  #Randomly choose starting point
 
     tol=1
 
-    while k < 50 and tol>0.001:
+    while k < 5000 and tol>10**-20:
         grad = GetGrad(H,xk,y)
 
         mNew = (b1 * m + (1-b1) * grad) /(1-b1**k)
@@ -162,11 +178,11 @@ def Adam(H,y):
 
         m = mNew
         v = vNew
-        print("k:",k,"xk ",xk)
 
 
-        xk = np.array(xk)[0]
+        xk = np.array(xk)
         xk1 = np.array(xk1)[0]
+
         if xk1[0] < -10:
             xk1[0] = -10
             print("Gamma")
@@ -183,21 +199,31 @@ def Adam(H,y):
             xk1[1] = 9
             print("C")
 
+        if np.linalg.norm(grad)< 10**-20:
+            print("k because of Grad",k)
+            return xk1
+
         tol = np.linalg.norm(xk - xk1)
         xk = xk1
         k = k + 1
 
+
+    print("k", k)
     return xk
 
 def EvalAcc(hnew,X,y,kf):
     K = 5
-    print('hnew',hnew)
+    # print('hnew',hnew)
     acc_sum = 0
+
+    gg = 10 ** hnew[0]
+    CC = 10 ** hnew[1]
 
     for train_index, test_index in kf.split(X):
         X_train, X_test = X[train_index], X[test_index]
         y_train, y_test = y[train_index], y[test_index]
-        clf = make_pipeline(StandardScaler(), SVC(C=10 ** hnew[0], gamma=10 ** hnew[1], kernel='rbf'))
+
+        clf = make_pipeline(StandardScaler(), SVC(C=CC, gamma=gg, kernel='rbf'))
         clf.fit(X_train, y_train)
 
         y_pred = clf.predict(X_test)
@@ -206,7 +232,21 @@ def EvalAcc(hnew,X,y,kf):
         acc_sum += acc
 
     mean_acc = acc_sum / K
+
     return mean_acc
+
+def imaging(z):
+    BestSoFar=[]
+    value=z[0]
+    for i in range(len(z)):
+        if z[i]>=value:
+            value=z[i]
+        BestSoFar.append(value)
+
+    plt.plot(range(len(z)),BestSoFar)
+    plt.show()
+
+    return
 
 
 def main():
@@ -224,6 +264,7 @@ def main():
         z= np.append(z,mean_acc )
 
     for i in range(100):
+        print("Iteration ", i)
         hnew =Adam(H,z)
         H=np.vstack( (H, hnew) )
 
@@ -232,8 +273,10 @@ def main():
 
     bestPosition = np.argmax(z)
     BestGamma,BestC = H[bestPosition,:]
-    print(BestGamma, BestC)
+    print("z",z)
+    print(z[bestPosition],BestGamma, BestC)
 
+    imaging(z)
 
     return
 
