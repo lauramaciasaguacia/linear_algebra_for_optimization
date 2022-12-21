@@ -10,6 +10,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import math
+import time
 
 
 pd.set_option('display.max_columns', 500)
@@ -24,9 +25,13 @@ X = df[["age", "sex", "chest pain type", "resting blood pressure", "serum choles
         "maximum heart rate achieved", "exercise induced angina", "ST depression induced",
         "slope of the peak exercise ST", "number of major vessels", "thalassemia"]].values
 
-y = df["heart disease"].values
+Y = df["heart disease"].values
 
-np.random.seed(31)
+K = 5
+test_size = 270 / 5
+kf = KFold(n_splits=K, shuffle=True, random_state=27)  # Mat' bday
+
+np.random.seed(31072000)
 def accuracy(y, pred_y):
     acc = 1 - (np.sum(abs(y - pred_y) / 2) / len(y))
     return acc
@@ -86,31 +91,21 @@ def MakeMuStd(H,h,y):
     Sy = np.dot(Sinv, y[:, None])
     Sk = np.dot(Sinv, k)
     mu= np.dot(k.T , Sy)[0,0]
-    print("Smallest Eig of Sigma:", np.min(np.linalg.eigvals(S)))
     if np.dot(k.T, Sk)[0, 0] > 1:
-        print("Okai we have a problem")
-        print("Matrix H")
-        print("Eigs of Sigma are:", np.linalg.eigvals(S))
-        print(H)
-        std = np.sqrt(abs(1 - np.dot(k.T, Sk)[0, 0]))
+        std = 0
     else:
         std = np.sqrt(1 - np.dot(k.T, Sk)[0, 0])
 
     return mu,std
 
 
-def GetGrad(H,h,y):
+def GetGrad(H,h,y,Sinv):
 
     ybest= np.max(y)
     k=MakeKappa(H,h)
     Help = MakeKappaPrime(H,h)
-
     kgamma= Help[:,0]
     kC = Help [:,1]
-
-    S=MakeSigma(H)
-
-    Sinv = np.linalg.inv( S ) #how to invert this
 
     Sy = np.dot(Sinv,  y[:, None])
     Sk = np.dot(Sinv, k)
@@ -118,97 +113,108 @@ def GetGrad(H,h,y):
     mu= np.dot(k.T , Sy)[0,0]
 
     if np.dot(k.T, Sk)[0,0] > 1:
-        print("Okai we have a problem")
-        std = np.sqrt(abs(1 - np.dot(k.T, Sk)[0, 0]))
+        return np.array([0,0])
     else:
         std = np.sqrt(1 - np.dot(k.T, Sk)[0,0])
+
     mugamma = np.dot(kgamma, Sy)[0]
     muC= np.dot(kC, Sy)[0]
-    # print("std",std)
 
     stdgamma = (-1) * np.dot(kgamma.T, Sk)[0]/std
     stdC = (-1) * np.dot(kC.T,Sk)[0]/std
 
 
 
-    dwrtgamma = norm.pdf((ybest - mu) / std) * (mugamma * std - (ybest - mu) * stdgamma) / std ** 2
-    dwrtC = norm.pdf((ybest - mu) / std) * (muC * std - (ybest - mu) * stdC) / std ** 2
+    dwrtgamma = -norm.pdf((ybest - mu) / std) * (mugamma * std - (ybest - mu) * stdgamma) / std ** 2
+    dwrtC = -norm.pdf((ybest - mu) / std) * (muC * std - (ybest - mu) * stdC) / std ** 2
 
     Grad= np.array([dwrtgamma,dwrtC])
     return Grad
 
 
+def BestAdam(H,y,flag):
+    alpha= 0.01
+    b1=0.9
+    b2=0.999
+    Sinv = np.linalg.inv(MakeSigma(H))
 
-#
-# def graddesc(H,y):
-#     alpha= 0.01
-#     xk = [-5, 4.5]  # choose starting point
-#     k=0
-#     tol=1
-#     while k <100 and tol>0.00000001:
-#         grad =  GetGrad(H,xk,y)
-#         move= alpha* grad
-#         xk1 = xk - move
-#         print("xk desc",xk)
-#         tol=np.linalg.norm(xk1-xk)
-#         print("tol",tol)
-#         xk=xk1
-#         k+=1
-#         xk = np.array(xk)
-#         xk1 = np.array(xk1)
-#
-#
-#     return xk
-#
-
-def BestAdam(H,y):
-    ybest= np.max(y)
-    bxk=Adam(H,y)
-    mu,std = MakeMuStd(H,bxk,y)
-    z= (ybest-mu)/std
-    best= norm.cdf( z)
+    bxk=Adam(H,y,flag,Sinv,alpha,b1,b2)[0]
+    best=probability(H,bxk,y)
     k=0
-    while k<5 and best>0.05:
-        xk=Adam(H,y)
-        mu, std = MakeMuStd(H, xk, y)
-        z = (ybest - mu) / std
-        p = norm.cdf(z)
+
+    while k<50 and best>0.25:
+
+
+        xk=Adam(H,y,0,Sinv,alpha,b1,b2)[0]
+        p=probability(H,xk,y)
         k+=1
         if p<best:
             bxk=xk
             best=p
-            print("better minimizer of the acquistion function found k:",k,"p",p)
+            # print("better minimizer of the acquistion function found k:",k,"p",p)
 
     print("best p", best, "k:",k)
 
     return bxk
+def probability(H,x,y):
+    ybest = np.max(y)
+    mu, std = MakeMuStd(H, x, y)
+
+    if std != 0:
+        z = (ybest - mu) / std
+        p = norm.cdf(z)
+    else:
+        p = (mu < ybest)
+
+    return p
+def two_norm(H,a,b,y):
+    t=np.sum(np.square(a-b))
+    return t
 
 
-def Adam(H,y):
+def Adam_HO(H,y,Sinv):
+    t=time.time()
+    T=np.array([0,0,0,0])
+    alpha_grid=[0.1,0.01,0.001]
+    b1_grid=np.linspace(0.7,1,31)
+    b2_grid=np.linspace(0.7,1,61)
+    for a in alpha_grid:
+        for b1 in b1_grid:
+            for b2 in b2_grid:
+                correct=0
+                for i in range(100):
+                    support=Adam(H,y,0,Sinv,a,b1,b2)
+                    if support[2]<support[1]:
+                        correct= correct+1
+                T=np.vstack( (T, np.array([a,b1,b2,correct])) )
+                print("b2",b2)
+            print(time.time() - t)
+            print("b1",b1)
+        print("a",a)
+        print(time.time()-t)
+    np.savetxt('values.csv', T, delimiter=",")
 
-    m = np.zeros([1,2])
+def Adam(H,y,printing,Sinv,alpha,b1,b2):
+
+    m = np.zeros([1, 2])
     v = np.zeros([1, 2])
 
-    alpha= 0.001
-    b1=0.9
-    b2=0.999
-    epsilon = np.ones([1,2])* 10** -8
     k=1
 
+
     xk=[np.random.uniform(-10, 0), np.random.uniform(0, 9)]  #Randomly choose starting point
+    Initial=probability(H,xk,y)
 
-    tol=1
+    tol1=1
+    while k < 500 and tol1>10**-6:
 
-    while k < 50 and tol>10**-20:
-        grad = GetGrad(H,xk,y)
+        grad = GetGrad(H,xk,y,Sinv)
+        mNew = (b1 * m + (1 - b1) * grad)
+        vNew = (b2 * v + (1 - b2) * np.square(grad))
 
-        mNew = (b1 * m + (1-b1) * grad) /(1-b1**k)
-        vNew = (b2 * v + (1-b2) * np.square(grad)) / (1-b2**k)   #as suggested in the paper to compute bias corrected value
-
-        move = alpha * np.divide(mNew, (np.sqrt(vNew) + epsilon) )
+        move = alpha * np.divide(mNew, (np.sqrt(vNew) ))
 
         xk1= xk-move
-        # print("move:",np.linalg.norm(move))
 
         m = mNew
         v = vNew
@@ -219,33 +225,67 @@ def Adam(H,y):
 
         if xk1[0] < -10:
             xk1[0] = -10
-            # print("Gamma")
 
         if xk1[0] > 0:
-            xk1[1] = 0
-            # print("Gamma")
+            xk1[0] = 0
 
         if xk1[1] < 0:
             xk1[1] = 0
-            # print("C")
 
         if xk1[1] > 9:
             xk1[1] = 9
-            # print("C")
 
-        # if np.linalg.norm(grad)< 10**-20:
-        #     print("k because of Grad",k)
-        #     return xk1
-
-        tol = np.linalg.norm(xk - xk1)
+        tol1 = two_norm(H,xk,xk1,y)
         xk = xk1
+
         k = k + 1
 
 
-    # print("k", k)
-    return xk
+    Final=probability(H,xk,y)
+    return xk,Initial,Final
 
-def EvalAcc(hnew,X,y,kf):
+def descent_plot(aux,H,y):
+    print(len(aux))
+    aux = np.array(aux)
+    if aux[-1,0]>aux[0,0]:
+        lb1=aux[0, 0]*1.2
+        ub1=aux[-1, 0] * 0.8
+    else:
+        lb1=aux[-1, 0] *1.2
+        ub1=aux[0, 0] * 0.8
+    if aux[-1, 1] > aux[0, 1]:
+        lb2=aux[0, 1] *0.8
+        ub2=aux[-1, 1] * 1.2
+        x2 = np.linspace(aux[0, 1] *0.8, aux[-1, 1] * 1.2, 150)
+    else:
+        lb2=aux[-1, 1] *0.8
+        ub2=aux[0, 1]*1.2
+
+    x1 = np.linspace(lb1,ub1, 150)
+    x2 = np.linspace(lb2,ub2, 150)
+
+    X1, X2 = np.meshgrid(x1, x2)
+    Z = np.zeros_like(X1)
+    for i in range(X1.shape[0]):
+        for j in range(X1.shape[1]):
+            ij = np.array([X1[i, j], X2[i, j]])
+            Z[i, j] = probability(H, ij, y)
+    fig = plt.figure(figsize=(10, 7))
+    plt.imshow(Z, extent=[lb1,ub1, lb2, ub2], origin='lower', cmap='viridis', alpha=1)
+    plt.title("ADAM: Minimization of acquisition function", fontsize=15)
+    plt.plot(aux[:, 0], aux[:, 1])
+    plt.plot(aux[:, 0], aux[:, 1], '.',color='lightgray', label="Acquisition function")
+    plt.plot(aux[-1, 0], aux[-1, 1],'o', color='r', label="Last Point")
+    plt.plot(aux[0, 0], aux[0, 1], 's',color='fuchsia', label="First Point")
+
+    plt.xlabel('log(gamma)', fontsize=11)
+    plt.ylabel('log(C)', fontsize=11)
+    plt.colorbar()
+    plt.legend(loc="upper right")
+    plt.show()
+
+    return
+def EvalAcc(hnew,X,Y,kf):
     K = 5
     # print('hnew',hnew)
     acc_sum = 0
@@ -255,14 +295,14 @@ def EvalAcc(hnew,X,y,kf):
 
     for train_index, test_index in kf.split(X):
         X_train, X_test = X[train_index], X[test_index]
-        y_train, y_test = y[train_index], y[test_index]
+        Y_train, Y_test = Y[train_index], Y[test_index]
 
         clf = make_pipeline(StandardScaler(), SVC(C=CC, gamma=gg, kernel='rbf'))
-        clf.fit(X_train, y_train)
+        clf.fit(X_train, Y_train)
 
-        y_pred = clf.predict(X_test)
+        Y_pred = clf.predict(X_test)
 
-        acc = accuracy(y_test, y_pred)
+        acc = accuracy(Y_test, Y_pred)
         acc_sum += acc
 
     mean_acc = acc_sum / K
@@ -313,18 +353,25 @@ def main():
 
     for i in range(H.shape[0]):
         h=H[i,:]
-        mean_acc = EvalAcc(h,X,y,kf)
+        mean_acc = EvalAcc(h,X,Y,kf)
         z= np.append(z,mean_acc )
 
-    for i in range(190):
+    Sinv=np.linalg.inv(MakeSigma(H))
+    Adam_HO(H, z, Sinv)
+    for i in range(100):
         print("Iteration ", i)
-        hnew = BestAdam(H,z)
+        if i==31 or i==34 or i==7:
+            flag=1
+        else:
+            flag=0
+
+        hnew = BestAdam(H,z,flag)
 
         if math.isnan(hnew[0]) or math.isnan(hnew[1]):
-            print("we got him")
+            print("WE GOT HIM")
         else:
             H=np.vstack( (H, hnew) )
-            mean_acc = EvalAcc(hnew, X, y, kf)
+            mean_acc = EvalAcc(hnew, X, Y, kf)
             z= np.append(z,mean_acc )
 
     bestPosition = np.argmax(z)
@@ -335,6 +382,8 @@ def main():
     imaging(H,z,n)
 
     return
+
+
 
 
 main()
