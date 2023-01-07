@@ -8,9 +8,10 @@ from sklearn.model_selection import KFold
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-"""In this file we perform a grid search in the hyper-parameter space. You can choose the granularity of the grid and
-the script will output the best combination of hyper-parameters found according to the average accuracy in the K-fold
-cross validation. It will also plot this average accuracy for each combination of hyper-parameters in a heatmap."""
+"""In this file we perform a grid search in the hyper-parameter space in order to get the best results from out SVC 
+model. You can choose the granularity of the grid and the script will output the best combination of hyper-parameters 
+found according to the average accuracy in the K-fold cross validation. It will also plot this average accuracy for each
+combination of hyper-parameters in a heatmap."""
 
 pd.set_option('display.max_columns', 20)
 
